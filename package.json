@@ -1,6 +1,6 @@
 {
-  "name": "igv",
-  "version": "2.12.6",
+  "name": "igv_feifei",
+  "version": "2.12.6-dev3.7.7",
   "main": "dist/igv.esm.js",
   "browser": "dist/igv.js",
   "module": "dist/igv.esm.js",
@@ -15,7 +15,7 @@
     "test": "mocha -u tdd -r esm"
   },
   "author": {
-    "name": "Jim Robinson"
+    "name": "feifei9606"
   },
   "contributors": [
     {
@@ -54,7 +54,8 @@
     "core-js": "^3.20.3",
     "eslint": "^6.4.0",
     "esm": "^3.2.25",
-    "igv-ui": "github:igvteam/igv-ui#v1.2.5",
+    "html2canvas": "^1.4.1",
+    "igv-ui": "github:igvteam/igv-ui#v1.5.0",
     "igv-utils": "github:igvteam/igv-utils#v1.3.12",
     "mocha": "^8.1.3",
     "regenerator-runtime": "^0.13.3",
@@ -64,5 +65,8 @@
     "rollup-plugin-terser": "^7.0.2",
     "sass": "^1.45.1",
     "w3c-xmlhttprequest": "^3.0.0"
+  },
+  "dependencies": {
+    "nouislider": "^15.7.1"
   }
 }
