@@ -7,7 +7,7 @@ class PairedEndStats {
         this.ffCount = 0
         this.sumF = 0
         this.sumF2 = 0
-        this.lp = minTLENPercentile === undefined ? 0.1 : minTLENPercentile
+        this.lp = minTLENPercentile === undefined ? 0.5 : minTLENPercentile
         this.up = maxTLENPercentile === undefined ? 99.5 : maxTLENPercentile
         this.isizes = []
         this.compute(alignments)

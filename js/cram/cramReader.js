@@ -204,7 +204,7 @@ class CramReader {
 
                 alignment.mate = {
                     chr: chrNames[record.mate.sequenceId],
-                    position: record.mate.alignmentStart,
+                    position: record.mate.alignmentStart - 1,
                     strand: strand
                 }
             }
