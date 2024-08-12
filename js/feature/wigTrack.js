@@ -112,6 +112,7 @@ class WigTrack extends TrackBase {
         }
 
         items = items.concat(MenuUtils.numericDataMenuItems(this.trackView))
+        items = items.concat(MenuUtils.changePointsSizeMenuItem(this.trackView))
 
         return items
     }

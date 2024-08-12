@@ -96,13 +96,21 @@ const MenuUtils = {
                 const callback = function () {
                     let value = trackView.browser.inputDialog.input.value
                     value = ('' === value || undefined === value) ? 'untitled' : value.trim()
-                    for (var i = 0; i < trackView.track.config.tracks.length; i++) {
-                        // 检查是否为 "points"
-                        if (trackView.track.config.tracks[i].graphType === "points") {
+                    if(trackView.track.type === "merged"){
+                        for (var i = 0; i < trackView.track.config.tracks.length; i++) {
+                            // 检查是否为 "points"
+                            if (trackView.track.config.tracks[i].graphType === "points") {
+                                // 修改 pointSize
+                                trackView.track.config.tracks[i].pointSize = value; 
+                            }
+                        }
+                    }else{
+                        if (trackView.track.config.graphType === "points") {
                             // 修改 pointSize
-                            trackView.track.config.tracks[i].pointSize = value; 
+                            trackView.track.config.pointSize = value; 
                         }
                     }
+
                     trackView.repaintViews()
                 }
         
@@ -348,8 +356,13 @@ function getTrackLabelText(track) {
 }
 
 function getTrackPointSize(track){
-    let a = track.tracks.filter((a) => { return a.config.graphType == "points"}).map((a) => {return a.config.pointSize})
-    return a.length > 0 ? a[0] : 3 
+    if(track.type === "merged") {
+        let a = track.tracks.filter((a) => { return a.config.graphType == "points"}).map((a) => {return a.config.pointSize})
+        return a.length > 0 ? a[0] : 3 
+    }else{
+        if(track.config.graphType == "points") return track.config.pointSize || 3
+    }
+
 }
 
 export default MenuUtils
