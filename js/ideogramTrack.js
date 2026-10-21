@@ -107,12 +107,13 @@ class IdeogramTrack {
 
         const locus = this.browser.currentLoci()
         if (typeof locus === 'string' && locus.includes(':')) {
+
+            // 与 cytoband 名称共用同一条水平中线，避免染色体号偏高
+            const bandTop = Math.round(pixelHeight / 2)
+            const bandHeight = pixelHeight - bandTop
             const chrName = locus.split(':')[0].replace(/^chr/i, '')
-            IGVGraphics.fillText(ctx, chrName, pixelWidth - 4, Math.round(pixelHeight / 2) + 4, {
-                font: 'bold 12px Arial',
-                textAlign: 'right',
-                fillStyle: 'black'
-            })
+
+            fillTextInkCentered(ctx, chrName, pixelWidth - 4, bandTop + bandHeight / 2, 'bold 12px Arial', 'black', 'right')
         }
     }
 
@@ -139,10 +140,8 @@ function drawIdeogram({ctx, chr, referenceFrame, genome, width, height, stainCol
     IGVGraphics.fillRect(ctx, 0, 0, width, height, {fillStyle: IGVColor.greyScale(255)})
 
     if (sampleName) {
-        IGVGraphics.fillText(ctx, sampleName, 0, Math.round(bandTop / 2) + 4, {
-            font: 'bold 12px Arial',
-            fillStyle: 'black'
-        })
+        // 标题行（上半部分）垂直居中
+        fillTextInkCentered(ctx, sampleName, 0, bandTop / 2, 'bold 12px Arial', 'black', 'left')
     }
 
     const cytobands = features
@@ -236,11 +235,11 @@ function drawIdeogramCytobandName(ctx, name, start, end, bandTop, bandHeight, sh
         return
     }
 
-    ctx.font = `${fontSize}px sans-serif`
-    const metrics = ctx.measureText(name)
+    const font = `${fontSize}px sans-serif`
+    ctx.font = font
 
     // 统一字号：放不下就不画，不再逐条缩小字号去硬塞
-    if (metrics.width > bandWidth) {
+    if (ctx.measureText(name).width > bandWidth) {
         return
     }
 
@@ -255,21 +254,28 @@ function drawIdeogramCytobandName(ctx, name, start, end, bandTop, bandHeight, sh
     // Choose text color based on luminance
     const textColor = luminance < 128 ? "white" : "black"
 
-    const centerX = start + (end - start) / 2
-    const centerY = bandTop + bandHeight / 2
+    fillTextInkCentered(ctx, name, start + (end - start) / 2, bandTop + bandHeight / 2, font, textColor, 'center')
+}
 
-    // 按字形实际上下沿做垂直居中；SVG 等上下文没有 actualBoundingBox 时退回经验基线偏移
+/**
+ * Draw text with its glyph ink box vertically centered on centerY.  canvas' "middle" baseline centers the em box,
+ * which sits a pixel or two off for most fonts, so the actual glyph bounds are used instead.  Contexts without
+ * actualBoundingBox* (e.g. the SVG canvas) fall back to a 0.35em baseline offset.
+ */
+function fillTextInkCentered(ctx, text, x, centerY, font, fillStyle, textAlign) {
+
+    ctx.font = font
+    const metrics = ctx.measureText(text)
+
     const ascent = metrics.actualBoundingBoxAscent
     const descent = metrics.actualBoundingBoxDescent
-    const textY = (Number.isFinite(ascent) && Number.isFinite(descent)) ?
-        centerY + (ascent - descent) / 2 :
-        centerY + fontSize * 0.35
+    const sizeMatch = /(\d+(?:\.\d+)?)px/.exec(font)
 
-    IGVGraphics.fillText(ctx, name, centerX, textY, {
-        fillStyle: textColor,
-        textAlign: "center",
-        font: `${fontSize}px sans-serif`
-    })
+    const y = (Number.isFinite(ascent) && Number.isFinite(descent)) ?
+        centerY + (ascent - descent) / 2 :
+        centerY + (sizeMatch ? parseFloat(sizeMatch[1]) : 10) * 0.35
+
+    IGVGraphics.fillText(ctx, text, x, y, {fillStyle, textAlign, font})
 }
 
 function getCytobandColor(colors, data) {
