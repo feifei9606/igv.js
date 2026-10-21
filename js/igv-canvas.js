@@ -67,9 +67,11 @@ const IGVGraphics = {
         ctx.stroke()
 
         if (properties && properties.symbol) {
-            const size = properties.symbolSize || 6
+            // 尺寸随线宽走：15px 的粗线会把 6px 的箭头整个吞掉
+            const size = properties.symbolSize || Math.max(6, (properties.lineWidth || 2) * 0.8)
             const xc = (x1 + x2) / 2
-            ctx.fillStyle = properties.symbolColor || properties.strokeStyle || 'white'
+            // 默认白色（与线段反色），否则箭头和线段同色等于没画
+            ctx.fillStyle = properties.symbolColor || 'white'
             if ('arrow-up' === properties.symbol) {
                 drawArrow(ctx, xc, y1 - size / 2, -Math.PI / 2, size)
             } else if ('arrow-down' === properties.symbol) {

@@ -314,6 +314,12 @@ class WigTrack extends TrackBase {
                         const symbol = f.symbol || this.config.symbol
                         if (symbol) {
                             properties.symbol = symbol
+                            if (this.config.symbolSize) {
+                                properties.symbolSize = this.config.symbolSize
+                            }
+                            if (this.config.symbolColor) {
+                                properties.symbolColor = this.config.symbolColor
+                            }
                         }
 
                         if (lastY !== undefined) {
