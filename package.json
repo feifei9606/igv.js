@@ -1,6 +1,6 @@
 {
-  "name": "igv",
-  "version": "3.8.10",
+  "name": "igv_feifei",
+  "version": "3.8.10-dev1.4.9",
   "main": "dist/igv.esm.js",
   "browser": "dist/igv.js",
   "module": "dist/igv.esm.js",
