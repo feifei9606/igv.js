@@ -24,22 +24,22 @@ class NavbarButton {
                 imageHover: `url("data:image/svg+xml,${ encodeURIComponent(imageHoverSVG) }")`,
             }
 
-        this.responsiveKey = 'text'
+        // Always use the compact (icon) buttons, the text <-> icon responsive switch is disabled
+        this.responsiveKey = 'image'
 
         this.configureButton(this.textContent, this.title)
 
         this.setState(initialButtonState)
 
-        browser.on('navbar-resize', navbarButtonCSSClass => {
-            this.navbarResizeHandler(navbarButtonCSSClass)
+        browser.on('navbar-resize', () => {
+            this.navbarResizeHandler()
         })
 
     }
 
-    navbarResizeHandler(navbarButtonCSSClass) {
-        const key = 'igv-navbar-icon-button' === navbarButtonCSSClass ? 'image' : 'text'
-        if (key !== this.responsiveKey) {
-            this.responsiveKey = key
+    navbarResizeHandler() {
+        if ('image' !== this.responsiveKey) {
+            this.responsiveKey = 'image'
             this.configureButton(this.textContent, this.title)
             this.setState(undefined)
         }

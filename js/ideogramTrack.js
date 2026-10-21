@@ -4,19 +4,21 @@ import {IGVColor} from "../node_modules/igv-utils/src/index.js"
 /**
  * Class represents an ideogram of a chromsome cytobands.  It is used for the header of a track panel.
  *
+ * Layout: the upper half of the track is a title row showing the sample name (from config.sampleName), the cytobands
+ * are drawn in the lower half.  The chromosome name is painted in the axis column.
  */
 class IdeogramTrack {
     constructor(browser) {
         this.browser = browser
         this.type = 'ideogram'
         this.id = 'ideogram'
-        this.height = browser.config.showCytobandNames ? 20 : 16
+        this.height = browser.config.ideogramHeight || 36
         this.order = Number.MIN_SAFE_INTEGER
         this.disableButtons = true
         this.ignoreTrackMenu = true
 
         // Check whether we should show the cytoband names in the ideogram
-        this.showCytobandNames = browser.config.showCytobandNames
+        this.showCytobandNames = browser.config.showCytobandNames !== false
     }
 
     computePixelHeight(ignore) {
@@ -43,7 +45,8 @@ class IdeogramTrack {
             width: pixelWidth,
             height: pixelHeight,
             stainColors,
-            showCytobandNames: this.showCytobandNames
+            showCytobandNames: this.showCytobandNames,
+            sampleName: this.browser.config.sampleName
         })
 
         const widthBP = Math.round(referenceFrame.bpPerPixel * pixelWidth)
@@ -58,6 +61,9 @@ class IdeogramTrack {
         }
 
         if (widthBP < chrLength) {
+
+            const bandTop = Math.round(pixelHeight / 2)
+            const bandHeight = pixelHeight - bandTop
 
             const percentWidth = widthBP / chrLength
             const percentX = xBP / chrLength
@@ -78,8 +84,8 @@ class IdeogramTrack {
             const xx = x + (context.lineWidth) / 2
             ww = (ww < 2) ? 1 : ww - context.lineWidth
 
-            const yy = context.lineWidth / 2
-            const hh = pixelHeight - context.lineWidth
+            const yy = bandTop + context.lineWidth / 2
+            const hh = bandHeight - context.lineWidth
 
             context.strokeRect(xx, yy, ww, hh)
 
@@ -88,15 +94,36 @@ class IdeogramTrack {
         }
     }
 
+    /**
+     * Chromosome name, displayed in the axis column
+     */
+    paintAxis(ctx, pixelWidth, pixelHeight) {
+
+        IGVGraphics.fillRect(ctx, 0, 0, pixelWidth, pixelHeight, {fillStyle: 'white'})
+
+        const locus = this.browser.currentLoci()
+        if (typeof locus === 'string' && locus.includes(':')) {
+            const chrName = locus.split(':')[0].replace(/^chr/i, '')
+            IGVGraphics.fillText(ctx, chrName, pixelWidth - 4, Math.round(pixelHeight / 2) + 4, {
+                font: 'bold 12px Arial',
+                textAlign: 'right',
+                fillStyle: 'black'
+            })
+        }
+    }
+
     dispose() {
         this.trackView = undefined
     }
 }
 
-function drawIdeogram({ctx, chr, referenceFrame, genome, width, height, stainColors, features, showCytobandNames}) {
+function drawIdeogram({ctx, chr, referenceFrame, genome, width, height, stainColors, features, showCytobandNames, sampleName}) {
     const shim = 1
     const shim2 = 0.5 * shim
-    const ideogramTop = 0
+
+    // Cytobands occupy the lower half of the track, the upper half is the title row
+    const bandTop = Math.round(height / 2)
+    const bandHeight = height - bandTop
 
     if (undefined === genome) {
         return
@@ -104,10 +131,17 @@ function drawIdeogram({ctx, chr, referenceFrame, genome, width, height, stainCol
 
     IGVGraphics.fillRect(ctx, 0, 0, width, height, {fillStyle: IGVColor.greyScale(255)})
 
+    if (sampleName) {
+        IGVGraphics.fillText(ctx, sampleName, 0, Math.round(bandTop / 2) + 4, {
+            font: 'bold 12px Arial',
+            fillStyle: 'black'
+        })
+    }
+
     const cytobands = features
     if (cytobands) {
 
-        const center = (ideogramTop + height / 2)
+        const center = (bandTop + bandHeight / 2)
 
         const xC = []
         const yC = []
@@ -125,7 +159,7 @@ function drawIdeogram({ctx, chr, referenceFrame, genome, width, height, stainCol
 
         // round rect clipping path
         ctx.beginPath()
-        IGVGraphics.roundRect(ctx, shim2, shim2 + ideogramTop, width - 2 * shim2, height - 2 * shim2, (height - 2 * shim2) / 2, 0, 1)
+        IGVGraphics.roundRect(ctx, shim2, bandTop + shim2, width - 2 * shim2, bandHeight - 2 * shim2, (bandHeight - 2 * shim2) / 2, 0, 1)
         ctx.clip()
 
         for (let i = 0; i < cytobands.length; i++) {
@@ -138,16 +172,16 @@ function drawIdeogram({ctx, chr, referenceFrame, genome, width, height, stainCol
 
                 if (cytoband.name.charAt(0) === 'p') {
                     xC[0] = start
-                    yC[0] = height + ideogramTop
+                    yC[0] = bandTop + bandHeight
                     xC[1] = start
-                    yC[1] = ideogramTop
+                    yC[1] = bandTop
                     xC[2] = end
                     yC[2] = center
                 } else {
                     xC[0] = end
-                    yC[0] = height + ideogramTop
+                    yC[0] = bandTop + bandHeight
                     xC[1] = end
-                    yC[1] = ideogramTop
+                    yC[1] = bandTop
                     xC[2] = start
                     yC[2] = center
                 }
@@ -155,14 +189,14 @@ function drawIdeogram({ctx, chr, referenceFrame, genome, width, height, stainCol
                 ctx.fillStyle = "rgb(150, 0, 0)"
                 ctx.strokeStyle = "rgb(150, 0, 0)"
                 IGVGraphics.polygon(ctx, xC, yC, 1, 0)
-            } 
+            }
             else {
                 const backgroundColor = getCytobandColor(stainColors, cytoband);
                 ctx.fillStyle = backgroundColor.color;
-                IGVGraphics.fillRect(ctx, start, shim + ideogramTop, (end - start), height - 2 * shim)
+                IGVGraphics.fillRect(ctx, start, bandTop + shim, (end - start), bandHeight - 2 * shim)
 
                 if (showCytobandNames) {
-                   drawIdeogramCytobandName(ctx, cytoband.name, start, end, ideogramTop, height, backgroundColor.shade)
+                    drawIdeogramCytobandName(ctx, cytoband.name, start, end, bandTop, bandHeight, backgroundColor.shade)
                 }
             }
         }
@@ -170,7 +204,7 @@ function drawIdeogram({ctx, chr, referenceFrame, genome, width, height, stainCol
 
     // round rect border
     ctx.strokeStyle = IGVColor.greyScale(41)
-    IGVGraphics.roundRect(ctx, shim2, shim2 + ideogramTop, width - 2 * shim2, height - 2 * shim2, (height - 2 * shim2) / 2, 0, 1)
+    IGVGraphics.roundRect(ctx, shim2, bandTop + shim2, width - 2 * shim2, bandHeight - 2 * shim2, (bandHeight - 2 * shim2) / 2, 0, 1)
 }
 
 function drawIdeogramCytobandName(ctx, name, start, end, ideogramTop, height, shade) {
