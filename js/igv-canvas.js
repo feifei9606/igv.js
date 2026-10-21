@@ -67,19 +67,20 @@ const IGVGraphics = {
         ctx.stroke()
 
         if (properties && properties.symbol) {
-            // 箭头画在线段**外侧**（底边贴着条形的上/下边），整个三角露在条外，才看得出是箭头；
-            // 高度默认等于线宽，因此从条形边缘再往外突出一个线宽的距离
+            // 空心三角形，整个画在线段**内部**：高度取线宽的 0.8（上下各留一点边距），
+            // 只用描边不填充，内部露出条形本身的颜色
             const lineWidth = properties.lineWidth || 2
-            const size = properties.symbolSize || Math.max(8, lineWidth)
+            const size = properties.symbolSize || Math.max(6, lineWidth * 0.8)
             const xc = (x1 + x2) / 2
 
-            // 默认与线段同色（三角本身露在白底上，白色会看不见），可用 symbolColor 覆盖
-            ctx.fillStyle = properties.symbolColor || ctx.strokeStyle
+            // 默认白色描边（与条形反色才看得见），可用 symbolColor 覆盖
+            ctx.strokeStyle = properties.symbolColor || 'white'
+            ctx.lineWidth = Math.max(1, lineWidth * 0.1)
 
             if ('arrow-up' === properties.symbol) {
-                drawArrow(ctx, xc, y1 - lineWidth / 2 - size, -Math.PI / 2, size)
+                drawArrow(ctx, xc, y1 - size / 2, -Math.PI / 2, size)
             } else if ('arrow-down' === properties.symbol) {
-                drawArrow(ctx, xc, y1 + lineWidth / 2 + size, Math.PI / 2, size)
+                drawArrow(ctx, xc, y1 + size / 2, Math.PI / 2, size)
             }
         }
 
@@ -308,9 +309,9 @@ function doPath(ctx, x, y) {
 }
 
 /**
- * Draw a filled triangular arrow head, used by strokeLine's "symbol" option.
+ * Draw a hollow (outlined) triangular arrow head, used by strokeLine's "symbol" option.
  *
- * 箭头高 = size，底边宽 = size * ARROW_WIDTH_RATIO（窄于高，才像箭头而不是等边三角）。
+ * 箭头高 = size，底边宽 = size * 0.7（窄于高，才像箭头而不是等边三角）；只描边、不填充。
  *
  * @param ctx
  * @param x 尖端 x
@@ -333,7 +334,7 @@ function drawArrow(ctx, x, y, angle, size) {
     ctx.lineTo(x - dx + bx, y - dy + by)
     ctx.lineTo(x - dx - bx, y - dy - by)
     ctx.closePath()
-    ctx.fill()
+    ctx.stroke()
 }
 
 export default IGVGraphics
