@@ -14,3 +14,6 @@ igv.js.iml
 /remove-license.cjs
 /supp_btq351_bbiSuppFINAL.doc
 /scratch/
+
+# BFG / filter-branch 重写历史留下的元数据，不入库
+.git-rewrite/
