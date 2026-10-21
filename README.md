@@ -158,7 +158,7 @@ npm run test
 |---|---|---|---|
 | `axis` ★ | wig、merged 等数值轨道 | 无 | 显式刻度值数组，例如拷贝数轨道用 `[0, 1, 2, 3, 4]`。用户调整 `min`/`max` 后，刻度会按原步长自动向外延伸覆盖整个范围（1~4 调到 -2~6 则显示 -2…6），不会只标中间一段；刻度非等差、或步长在当前高度下密于 10px 时，退回只标 `min`/`max` 两个刻度。不设置 `axis` 时即上游行为。刻度按**线性轴**定位，`logScale: true` 时位置不准，两者不要同时使用。 |
 | `offset` ★ | wig | `0` | 柱状图的基线值。`graphType: "bar"` 时柱子从该值画起，可用于"从某个中线出发"的图形。 |
-| `symbol` ★ | wig（`graphType: "line"`） | 无 | 在线段中点画出方向符号（三角形），取值 `"arrow-up"` / `"arrow-down"`。默认白色（与线段反色才看得见），高度默认等于 `lineWidth`（底边宽 0.7×高），可用 `symbolSize` / `symbolColor` 单独调整，`symbol: false` 可整体关闭符号；自定义数据源也可在 feature 上直接给 `symbol` 覆盖该配置。`line` 模式不再画相邻片段间的连接线，区间数据的每段都是一条独立的水平线。 |
+| `symbol` ★ | wig（`graphType: "line"`） | 无 | 在线段中点画出方向符号（三角形），取值 `"arrow-up"` / `"arrow-down"`。三角画在线段**外侧**（底边贴条形的上/下边，整个三角露在条外），默认与线段同色，高度默认等于 `lineWidth`（底边 0.7×高），可用 `symbolSize` / `symbolColor` 单独调整，`symbol: false` 可整体关闭符号；自定义数据源也可在 feature 上直接给 `symbol` 覆盖该配置。`line` 模式不再画相邻片段间的连接线，区间数据的每段都是一条独立的水平线。 |
 | `lineWidth` | wig | `2` | 线宽；同时作为柱/线的最小绘制宽度（区间宽度小于 1px 时保证可见）。 |
 | `showAminoAcids` ★ | 注释轨道（refGene/genePred 等） | `true` | 高倍放大时是否在 exon 上绘制氨基酸字母。设为 `false` 关闭字母并始终绘制方向箭头。 |
 

@@ -67,16 +67,19 @@ const IGVGraphics = {
         ctx.stroke()
 
         if (properties && properties.symbol) {
-            // 箭头高度默认等于线宽（贴着条形上下边，四周留一点红边），比原来的固定 6px 更配 CNV 的粗线段；
-            // 再大就会把细线段整个吃掉，只剩一个白色缺口
-            const size = properties.symbolSize || Math.max(8, properties.lineWidth || 2)
+            // 箭头画在线段**外侧**（底边贴着条形的上/下边），整个三角露在条外，才看得出是箭头；
+            // 高度默认等于线宽，因此从条形边缘再往外突出一个线宽的距离
+            const lineWidth = properties.lineWidth || 2
+            const size = properties.symbolSize || Math.max(8, lineWidth)
             const xc = (x1 + x2) / 2
-            // 默认白色（与线段反色），否则箭头和线段同色等于没画
-            ctx.fillStyle = properties.symbolColor || 'white'
+
+            // 默认与线段同色（三角本身露在白底上，白色会看不见），可用 symbolColor 覆盖
+            ctx.fillStyle = properties.symbolColor || ctx.strokeStyle
+
             if ('arrow-up' === properties.symbol) {
-                drawArrow(ctx, xc, y1 - size / 2, -Math.PI / 2, size)
+                drawArrow(ctx, xc, y1 - lineWidth / 2 - size, -Math.PI / 2, size)
             } else if ('arrow-down' === properties.symbol) {
-                drawArrow(ctx, xc, y1 + size / 2, Math.PI / 2, size)
+                drawArrow(ctx, xc, y1 + lineWidth / 2 + size, Math.PI / 2, size)
             }
         }
 
