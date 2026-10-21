@@ -568,6 +568,44 @@ class TrackBase {
         return menuItems
     }
 
+    /**
+     * Menu item for changing the point size of "points" graph type tracks.  For merged tracks the setting is applied
+     * to all constituent points tracks.  Returns an empty array if this track has no points tracks, so that callers
+     * can push the result unconditionally.
+     */
+    changePointsSizeMenuItem() {
+
+        const pointsTracks = ('merged' === this.type ? this.tracks : [this]).filter(t => 'points' === t.graphType)
+
+        if (0 === pointsTracks.length) {
+            return []
+        }
+
+        const callback = value => {
+            const pointSize = Number.parseInt(value, 10)
+            if (!Number.isFinite(pointSize) || pointSize < 1) {
+                return   // ignore invalid input
+            }
+            for (const track of pointsTracks) {
+                track.config.pointSize = pointSize
+            }
+            if (this.trackView) {
+                this.trackView.repaintViews()
+            }
+        }
+
+        const dialog = e => {
+            this.trackView.browser.inputDialog.present({
+                label: 'Set point size',
+                value: pointsTracks[0].config.pointSize || 3,
+                callback
+            }, e)
+        }
+
+        // "dialog" (rather than "click") so the dialog is presented once, even with multiple tracks selected
+        return [{label: 'Set point size', dialog}]
+    }
+
     setDataRange({min, max}) {
 
         this.dataRange = {min, max}

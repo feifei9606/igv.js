@@ -153,6 +153,10 @@ class MergedTrack extends TrackBase {
             track.autoscale = false
             track.autoscaleGroup = false
         }
+        // Not yet attached to a track view during construction, nothing to repaint in that case
+        if (this.trackView) {
+            this.trackView.repaintViews()
+        }
     }
 
     set dataRange({min, max}) {
@@ -199,6 +203,7 @@ class MergedTrack extends TrackBase {
         }
 
         items.push('<hr/>')
+        items.push(...this.changePointsSizeMenuItem())
         items.push(this.overlayTrackAlphaAdjustmentMenuItem())
         items.push(this.trackSeparationMenuItem())
 
