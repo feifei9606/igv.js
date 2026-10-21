@@ -286,12 +286,48 @@ class Browser {
     }
 
     /**
-     * Render browse display as SVG
-     * @returns {string}
+     * Geometry of the block of track views that will be exported to SVG/PNG.
+     *
+     * @param targetTracks  Optional array of track ids.  If empty all tracks are exported.
+     * @returns {{trackViews: *, top: number, width: number, height: number}} vertical origin and total height, in
+     *          viewport (CSS pixel) coordinates
      */
-    toSVG() {
+    svgGeometry(targetTracks = []) {
 
         const {x, y, width, height} = this.columnContainer.getBoundingClientRect()
+
+        const trackViews = this.trackViews.filter(tv => 0 === targetTracks.length || targetTracks.includes(tv.track.id))
+
+        // Full column export -- nothing to compute
+        if (trackViews.length === this.trackViews.length) {
+            return {trackViews, x, top: y, width, height}
+        }
+
+        let top = y
+        let blockHeight = height
+
+        const rects = trackViews
+            .map(trackView => trackView.viewports.length > 0 ? trackView.viewports[0].viewportElement.getBoundingClientRect() : undefined)
+            .filter(rect => rect)
+
+        if (rects.length > 0) {
+            top = Math.min(...rects.map(rect => rect.top))
+            const bottom = Math.max(...rects.map(rect => rect.bottom))
+            blockHeight = Math.ceil(bottom - top) + 1   // +1 so that borders are not clipped
+        }
+
+        return {trackViews, x, top, width, height: blockHeight}
+    }
+
+    /**
+     * Render browse display as SVG
+     *
+     * @param targetTracks  Optional array of track ids.  If empty all tracks are rendered.
+     * @returns {string}
+     */
+    toSVG(targetTracks = []) {
+
+        const {trackViews, x, top, width, height} = this.svgGeometry(targetTracks)
 
         const h_render = Number.MAX_SAFE_INTEGER      // <= DO NOT USE 'height' here
 
@@ -312,9 +348,9 @@ class Browser {
 
         const context = new C2S(config)
 
-        // tracks -> SVG
-        const delta = {deltaX: 0, deltaY: -y}
-        for (let trackView of this.trackViews) {
+        // tracks -> SVG.  deltaY shifts the first rendered track to the top of the image.
+        const delta = {deltaX: 0, deltaY: -top}
+        for (let trackView of trackViews) {
             trackView.renderSVGContext(context, delta)
         }
 
@@ -344,39 +380,62 @@ class Browser {
         URL.revokeObjectURL(data)  // Important to prevent memory leak
     }
 
-    savePNGtoFile(filename) {
+    savePNGtoFile(filename, targetTracks = []) {
 
-        const svgAsString = this.toSVG()
+        this.toPNGDataURL(targetTracks)
+            .then(data => FileUtils.download(filename || 'igvjs.png', data))
+            .catch(error => console.error(error))
+    }
 
-        const svgBlob = new Blob([svgAsString], {
-            type: 'image/svg+xml'
+    /**
+     * Render the browse display as a PNG data URL.
+     *
+     * @param targetTracks  Optional array of track ids.  If empty all tracks are rendered.
+     * @returns {Promise<string>} a "data:image/png;base64,..." URL
+     */
+    toPNGDataURL(targetTracks = []) {
+
+        const svgAsString = this.toSVG(targetTracks)
+
+        const devicePixelRatio = window.devicePixelRatio || 1
+        const {width, height} = this.svgGeometry(targetTracks)
+
+        return new Promise((resolve, reject) => {
+
+            const svgObjectUrl = URL.createObjectURL(new Blob([svgAsString], {type: 'image/svg+xml'}))
+            const img = document.createElement('img')
+
+            img.addEventListener('load', () => {
+                try {
+                    const canvas = document.createElement('canvas')
+                    canvas.width = Math.ceil(width * devicePixelRatio)
+                    canvas.height = Math.ceil(height * devicePixelRatio)
+                    const context = canvas.getContext('2d')
+                    context.scale(devicePixelRatio, devicePixelRatio)
+                    context.drawImage(img, 0, 0)
+                    resolve(canvas.toDataURL("image/png"))
+                } catch (error) {
+                    reject(error)
+                } finally {
+                    URL.revokeObjectURL(svgObjectUrl)  // Free temporary object URL
+                }
+            })
+
+            img.addEventListener('error', reject)
+
+            img.src = svgObjectUrl
         })
-        const svgObjectUrl = URL.createObjectURL(svgBlob)
+    }
 
-        const img = document.createElement('img')
-
-        const onImageLoaded = () => {
-
-            const dimensions = this.columnContainer.getBoundingClientRect()
-            const devicePixelRatio = window.devicePixelRatio
-            const w = dimensions.width * devicePixelRatio
-            const h = dimensions.height * devicePixelRatio
-            const canvas = document.createElement('canvas')
-            canvas.width = w
-            canvas.height = h
-            const context = canvas.getContext('2d')
-            context.scale(devicePixelRatio, devicePixelRatio)
-
-            context.drawImage(img, 0, 0)
-            const data = canvas.toDataURL("image/png")
-            filename = filename || 'igvjs.png'
-            FileUtils.download(filename, data)
-
-            // Free temporary object URL
-            URL.revokeObjectURL(svgObjectUrl)
-        }
-        img.addEventListener('load', onImageLoaded)
-        img.src = svgObjectUrl
+    /**
+     * Same as savePNGtoFile, but returns the PNG data URL instead of downloading it.
+     *
+     * @param filename      unused, kept for backwards compatibility
+     * @param targetTracks  Optional array of track ids.
+     * @returns {Promise<string>}
+     */
+    savePNGCallBack(filename, targetTracks = []) {
+        return this.toPNGDataURL(targetTracks)
     }
 
 
