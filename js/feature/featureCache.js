@@ -24,6 +24,33 @@ class FeatureCache {
     }
 
     /**
+     * 返回 treeMap 中实际存在的染色体名：先精确匹配，再按"忽略 chr 前缀与大小写"找等价名字。
+     * 找不到返回 undefined。
+     */
+    resolveChromosomeName(chr) {
+
+        if (typeof chr !== 'string') {
+            return undefined
+        }
+
+        if (Object.prototype.hasOwnProperty.call(this.treeMap, chr)) {
+            return chr
+        }
+
+        if (!this.chromosomeAliases) {
+            this.chromosomeAliases = {}
+            for (const name of Object.keys(this.treeMap)) {
+                const key = aliasKey(name)
+                if (undefined === this.chromosomeAliases[key]) {
+                    this.chromosomeAliases[key] = name
+                }
+            }
+        }
+
+        return this.chromosomeAliases[aliasKey(chr)]
+    }
+
+    /**
      * Search loaded features
      * @param fn
      */
@@ -41,7 +68,11 @@ class FeatureCache {
 
     queryFeatures(chr, start, end) {
 
-        const tree = this.treeMap[chr];
+        // 索引按 feature.chr 建，查询用的是请求名。两者可能只差 "chr" 前缀（"6" vs "chr6"，自定义 reader
+        // 常见），此时回退到等价名字，否则整轨会查不到特征。
+        const name = this.resolveChromosomeName(chr)
+
+        const tree = name ? this.treeMap[name] : undefined;
 
         if (!tree) return [];
 
@@ -55,7 +86,7 @@ class FeatureCache {
             // Assumption: features are sorted by start position
 
             const featureList = [];
-            const all = this.allFeatures[chr];
+            const all = this.allFeatures[name];
             if (all) {
                 for (let interval of intervals) {
                     const indexRange = interval.value;
@@ -151,6 +182,13 @@ class IndexRange {
         this.start = start;
         this.end = end;
     }
+}
+
+/**
+ * 染色体名的比较键：忽略 "chr" 前缀与大小写（"chr6" 与 "6" 视为同一条）。
+ */
+function aliasKey(name) {
+    return String(name).replace(/^chr/i, '').toLowerCase()
 }
 
 export default FeatureCache;
