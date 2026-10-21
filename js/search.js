@@ -46,7 +46,8 @@ async function search(browser, string) {
 
         let locusObject
         let chromosome
-        if (locus.includes(":")) {
+        // "chr1:100-200" style locus, or a bare chromosome name ("chr8")
+        if (locus.includes(":") || /^chr[\w.]+$/.test(locus)) {
             locusObject = parseLocusString(locus, browser.isSoftclipped())
             if (locusObject) {
                 chromosome = await browser.genome.loadChromosome(locusObject.chr)

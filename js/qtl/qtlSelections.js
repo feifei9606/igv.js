@@ -38,7 +38,7 @@ class QTLSelections {
     }
 
     hasPhenotype(name) {
-        return name && this.phenotypeColors.has(name.toUpperCase())
+        return name && this.phenotypeColors.has(String(name).toUpperCase())
     }
 
     hasQTL(qtl) {

@@ -150,7 +150,7 @@ function renderFeature(feature, bpStart, xScale, pixelHeight, ctx, options) {
                     if (exon.readingFrame !== undefined) {
 
                         if (options.bpPerPixel < aminoAcidSequenceRenderThreshold &&
-                            options.sequenceInterval) {
+                            options.sequenceInterval && false !== this.config.showAminoAcids) {
 
                             const leftExon = i > 0 && feature.exons[i - 1].readingFrame !== undefined ? feature.exons[i - 1] : undefined
                             const riteExon = i < feature.exons.length - 1 && feature.exons[i + 1].readingFrame !== undefined ? feature.exons[i + 1] : undefined
@@ -160,7 +160,8 @@ function renderFeature(feature, bpStart, xScale, pixelHeight, ctx, options) {
                     }
 
                     // Arrows
-                    if (ePw > step + 5 && direction !== 0 && options.bpPerPixel > aminoAcidSequenceRenderThreshold) {
+                    if (ePw > step + 5 && direction !== 0 &&
+                        (options.bpPerPixel > aminoAcidSequenceRenderThreshold || false === this.config.showAminoAcids)) {
                         ctx.fillStyle = "white"
                         ctx.strokeStyle = "white"
                         for (let x = ePx + step / 2; x < ePx1; x += step) {

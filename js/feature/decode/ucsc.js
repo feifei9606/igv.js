@@ -249,7 +249,8 @@ function decodeGenePred(tokens, header) {
         end: parseInt(tokens[4 + shift]),
         cdStart: cdStart,
         cdEnd: cdEnd,
-        id: tokens[0 + shift]
+        id: tokens[0 + shift],
+        score: tokens[10 + shift]    // present in extended records, undefined otherwise
     }
     const exons = decodeExons(parseInt(tokens[7 + shift]), tokens[8 + shift], tokens[9 + shift])
     findUTRs(exons, cdStart, cdEnd)
@@ -283,7 +284,8 @@ function decodeGenePredExt(tokens, header) {
         end: parseInt(tokens[4 + shift]),
         cdStart: cdStart,
         cdEnd: cdEnd,
-        id: tokens[0 + shift]
+        id: tokens[0 + shift],
+        score: tokens[10 + shift]    // refGene score column
     }
 
     const exons = decodeExons(
