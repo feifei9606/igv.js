@@ -147,6 +147,77 @@ To run the tests from the command line
 npm run test
 ```
 
+# 本分支的定制扩展（相对上游 igv.js v3.8.10）
+
+本仓库在 [igv.js](https://github.com/igvteam/igv.js) v3.8.10 基础上维护。除上游功能外，另新增了下列配置项与 API
+（标 ★ 的为上游没有的能力，标 ⚠ 的为与上游默认值不同）。
+
+## 轨道配置（track config）
+
+| 选项 | 适用轨道 | 默认值 | 说明 |
+|---|---|---|---|
+| `axis` ★ | wig、merged 等数值轨道 | 无 | 显式刻度值数组，例如拷贝数轨道用 `[0, 1, 2, 3, 4]`。超出 `min`/`max` 范围的刻度自动忽略；不设置时沿用上游的 min/max 两个刻度。刻度按**线性轴**定位，`logScale: true` 时位置不准，两者不要同时使用。 |
+| `offset` ★ | wig | `0` | 柱状图的基线值。`graphType: "bar"` 时柱子从该值画起，可用于"从某个中线出发"的图形。 |
+| `symbol` ★ | wig（`graphType: "line"`） | 无 | 在线段中点画出方向符号，取值 `"arrow-up"` / `"arrow-down"`。箭头颜色跟随线段颜色、尺寸固定 6px；自定义数据源也可在 feature 上直接给 `symbol` 覆盖该配置。 |
+| `lineWidth` | wig | `2` | 线宽；同时作为柱/线的最小绘制宽度（区间宽度小于 1px 时保证可见）。 |
+| `showAminoAcids` ★ | 注释轨道（refGene/genePred 等） | `true` | 高倍放大时是否在 exon 上绘制氨基酸字母。设为 `false` 关闭字母并始终绘制方向箭头。 |
+
+```javascript
+{
+    type: "wig",
+    name: "copy number",
+    url: "sample.seg",
+    graphType: "line",
+    min: 0,
+    max: 4,
+    axis: [0, 1, 2, 3, 4],
+    offset: 2,
+    symbol: "arrow-up"
+}
+```
+
+## 浏览器配置（browser config）
+
+| 选项 | 默认值 | 说明 |
+|---|---|---|
+| `ideogramHeight` ★ | `36` | ideogram 轨道高度（px）。上半部分为标题行，下半部分为 cytoband 带，布局按 `height / 2` 自动分配。 |
+| `showCytobandNames` ⚠ | `true` | 是否在 cytoband 上显示条带名（上游默认 `false`）。 |
+| `cytobandFontSize` ★ | `10` | 条带名统一字号，且不超过"条带高度 - 2"。宽度放不下的条带名会整条不显示，不再逐条缩小字号。 |
+| `sampleName` ★ | 无 | 显示在 ideogram 标题行左侧的样本名（常用于多面板/多样本截图）。 |
+
+```javascript
+igv.createBrowser(div, {
+    genome: "hg38",
+    ideogramHeight: 36,
+    showCytobandNames: true,
+    cytobandFontSize: 10,
+    sampleName: "SAMPLE-01",
+    tracks: [ ... ]
+})
+```
+
+## API 扩展
+
+| 方法 | 说明 |
+|---|---|
+| `browser.toSVG(targetTracks?)` ★ | 返回 SVG 字符串。可选 `targetTracks`（track id 数组）只导出指定轨道，图像高度按选中轨道自动裁剪。 |
+| `browser.savePNGtoFile(filename?, targetTracks?)` ★ | 保存 PNG。第二个参数同 `toSVG`，可只导出部分轨道。 |
+| `browser.toPNGDataURL(targetTracks?)` ★ | 返回 `Promise<string>`，内容为 `data:image/png;base64,...`，便于嵌入报告。 |
+| `browser.savePNGCallBack(filename?, targetTracks?)` ★ | 与 `toPNGDataURL` 相同（返回 Promise），`filename` 仅为兼容旧调用保留，实际未使用。 |
+
+```javascript
+// 只导出两份 track，并直接拿到 dataURL
+const dataUrl = await browser.toPNGDataURL(["tumor", "normal"])
+```
+
+## 其它行为变更
+
+- 搜索框支持裸染色体名：输入 `chr8`（不含坐标）可直接跳转到该染色体全程。
+- `genePred` / `genePredExt` 解码会解析 `score` 列，便于按打分着色或过滤。
+- merged track 通过菜单修改数据范围后立即重绘（此前需要手动触发）。
+- 数值轨道右键菜单新增 **Set point size**，支持同时对 merged track 内的多个 points 子轨道生效。
+- 上游误提交的 `.git-rewrite/`（BFG 哈希映射，2429 个文件）已从版本控制移除并加入 `.gitignore`。
+
 # Supported Browsers
 
 igv.js require a modern web browser with support for Javascript ECMAScript 2015 (ES6). 
