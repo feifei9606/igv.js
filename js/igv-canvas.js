@@ -67,8 +67,9 @@ const IGVGraphics = {
         ctx.stroke()
 
         if (properties && properties.symbol) {
-            // 尺寸随线宽走：15px 的粗线会把 6px 的箭头整个吞掉
-            const size = properties.symbolSize || Math.max(6, (properties.lineWidth || 2) * 0.8)
+            // 箭头高度默认等于线宽（贴着条形上下边，四周留一点红边），比原来的固定 6px 更配 CNV 的粗线段；
+            // 再大就会把细线段整个吃掉，只剩一个白色缺口
+            const size = properties.symbolSize || Math.max(8, properties.lineWidth || 2)
             const xc = (x1 + x2) / 2
             // 默认白色（与线段反色），否则箭头和线段同色等于没画
             ctx.fillStyle = properties.symbolColor || 'white'
@@ -306,19 +307,28 @@ function doPath(ctx, x, y) {
 /**
  * Draw a filled triangular arrow head, used by strokeLine's "symbol" option.
  *
+ * 箭头高 = size，底边宽 = size * ARROW_WIDTH_RATIO（窄于高，才像箭头而不是等边三角）。
+ *
  * @param ctx
- * @param x tip x
- * @param y tip y
- * @param angle direction of the arrow, in radians
- * @param size head length
+ * @param x 尖端 x
+ * @param y 尖端 y
+ * @param angle 指向，弧度（-PI/2 向上，PI/2 向下）
+ * @param size 箭头高度
  */
 function drawArrow(ctx, x, y, angle, size) {
+
+    const halfWidth = size * 0.35   // 底边半宽
     const dx = Math.cos(angle) * size
     const dy = Math.sin(angle) * size
+
+    // 与指向垂直的方向即底边方向
+    const bx = -dy / size * halfWidth
+    const by = dx / size * halfWidth
+
     ctx.beginPath()
     ctx.moveTo(x, y)
-    ctx.lineTo(x - dx + dy / 2, y - dy - dx / 2)
-    ctx.lineTo(x - dx - dy / 2, y - dy + dx / 2)
+    ctx.lineTo(x - dx + bx, y - dy + by)
+    ctx.lineTo(x - dx - bx, y - dy - by)
     ctx.closePath()
     ctx.fill()
 }

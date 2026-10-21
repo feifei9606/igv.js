@@ -285,8 +285,6 @@ class WigTrack extends TrackBase {
             // nothing to paint.
             if (this.dataRange.max > this.dataRange.min) {
 
-                let lastPixelEnd = -1
-                let lastY
                 // Baseline for bars; "offset" (default 0) supports tracks whose bars start at a non-zero value
                 const y0 = yScale(this.config.offset || 0)
 
@@ -311,7 +309,8 @@ class WigTrack extends TrackBase {
                     if (this.graphType === "line") {
                         const lineWidth = this.lineWidth
                         const properties = {"fillStyle": color, "strokeStyle": color, "lineWidth": lineWidth};
-                        const symbol = f.symbol || this.config.symbol
+                        // config.symbol === false 可整体关闭符号，回到"纯色水平条"的旧观感
+                        const symbol = false === this.config.symbol ? undefined : (f.symbol || this.config.symbol)
                         if (symbol) {
                             properties.symbol = symbol
                             if (this.config.symbolSize) {
@@ -322,9 +321,8 @@ class WigTrack extends TrackBase {
                             }
                         }
 
-                        if (lastY !== undefined) {
-                            IGVGraphics.strokeLine(ctx, lastPixelEnd, lastY, x, y, properties)
-                        }
+                        // 不画相邻片段之间的连接线：CNV/ROH 这类区间数据相邻段值不同时，连接线会画成竖直的
+                        // "台阶"或空心方框，与"每段一条水平线"的预期不符（fork 原本也是不连线的）
                         IGVGraphics.strokeLine(ctx, x, y, x + renderWidth, y, properties)
                     } else if (this.graphType === "points") {
                         const pointSize = this.config.pointSize || 3
@@ -361,8 +359,6 @@ class WigTrack extends TrackBase {
                         }
 
                     }
-                    lastPixelEnd = x + width
-                    lastY = y
                 }
 
                 // If the track includes negative values draw a baseline
