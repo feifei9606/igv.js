@@ -66,6 +66,17 @@ const IGVGraphics = {
         ctx.lineTo(x2, y2)
         ctx.stroke()
 
+        if (properties && properties.symbol) {
+            const size = properties.symbolSize || 6
+            const xc = (x1 + x2) / 2
+            ctx.fillStyle = properties.symbolColor || properties.strokeStyle || 'white'
+            if ('arrow-up' === properties.symbol) {
+                drawArrow(ctx, xc, y1 - size / 2, -Math.PI / 2, size)
+            } else if ('arrow-down' === properties.symbol) {
+                drawArrow(ctx, xc, y1 + size / 2, Math.PI / 2, size)
+            }
+        }
+
         if (properties) ctx.restore()
     },
 
@@ -288,6 +299,26 @@ function doPath(ctx, x, y) {
         ctx.lineTo(x[i], y[i])
     }
     ctx.closePath()
+}
+
+/**
+ * Draw a filled triangular arrow head, used by strokeLine's "symbol" option.
+ *
+ * @param ctx
+ * @param x tip x
+ * @param y tip y
+ * @param angle direction of the arrow, in radians
+ * @param size head length
+ */
+function drawArrow(ctx, x, y, angle, size) {
+    const dx = Math.cos(angle) * size
+    const dy = Math.sin(angle) * size
+    ctx.beginPath()
+    ctx.moveTo(x, y)
+    ctx.lineTo(x - dx + dy / 2, y - dy - dx / 2)
+    ctx.lineTo(x - dx - dy / 2, y - dy + dx / 2)
+    ctx.closePath()
+    ctx.fill()
 }
 
 export default IGVGraphics

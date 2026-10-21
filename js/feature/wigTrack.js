@@ -186,6 +186,7 @@ class WigTrack extends TrackBase {
         }
 
         items.push(...this.numericDataMenuItems())
+        items.push(...this.changePointsSizeMenuItem())
 
         return items
     }
@@ -286,7 +287,8 @@ class WigTrack extends TrackBase {
 
                 let lastPixelEnd = -1
                 let lastY
-                const y0 = yScale(0)
+                // Baseline for bars; "offset" (default 0) supports tracks whose bars start at a non-zero value
+                const y0 = yScale(this.config.offset || 0)
 
                 for (let f of features) {
 
@@ -300,17 +302,24 @@ class WigTrack extends TrackBase {
 
                     const rectEnd = (f.end - bpStart) / bpPerPixel
                     const width = rectEnd - x
+                    // Minimum drawing width so that very short intervals (e.g. CNV segments narrower than a pixel) remain
+                    // visible.  Only applies to bar / line / points rendering.
+                    const renderWidth = Math.max(this.lineWidth, width)
 
                     const color = options.alpha ? IGVColor.addAlpha(this.getColorForFeature(f), options.alpha) : this.getColorForFeature(f)
 
                     if (this.graphType === "line") {
                         const lineWidth = this.lineWidth
                         const properties = {"fillStyle": color, "strokeStyle": color, "lineWidth": lineWidth};
+                        const symbol = f.symbol || this.config.symbol
+                        if (symbol) {
+                            properties.symbol = symbol
+                        }
 
                         if (lastY !== undefined) {
                             IGVGraphics.strokeLine(ctx, lastPixelEnd, lastY, x, y, properties)
                         }
-                        IGVGraphics.strokeLine(ctx, x, y, x + width, y, {"fillStyle": color, "strokeStyle": color})
+                        IGVGraphics.strokeLine(ctx, x, y, x + renderWidth, y, properties)
                     } else if (this.graphType === "points") {
                         const pointSize = this.config.pointSize || 3
                         const px = x + width / 2
@@ -338,11 +347,11 @@ class WigTrack extends TrackBase {
                     } else {
                         // Default graph type (bar)
                         const height = Math.min(pixelHeight, y - y0)
-                        IGVGraphics.fillRect(ctx, x, y0, width, height, {fillStyle: color})
+                        IGVGraphics.fillRect(ctx, x, y0, renderWidth, height, {fillStyle: color})
                         if (f.value > this.dataRange.max) {
-                            IGVGraphics.fillRect(ctx, x, 0, width, 3, {fillStyle: this.overflowColor})
+                            IGVGraphics.fillRect(ctx, x, 0, renderWidth, 3, {fillStyle: this.overflowColor})
                         } else if (f.value < this.dataRange.min) {
-                            IGVGraphics.fillRect(ctx, x, pixelHeight - 2, width, 3, {fillStyle: this.overflowColor})
+                            IGVGraphics.fillRect(ctx, x, pixelHeight - 2, renderWidth, 3, {fillStyle: this.overflowColor})
                         }
 
                     }
@@ -536,7 +545,7 @@ class WigTrack extends TrackBase {
                     popupData.push({name: "Position:", value: posString})
                     popupData.push({
                         name: "Value:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;",
-                        value: StringUtils.numberFormatter(selectedFeature.value.toFixed(4))
+                        value: StringUtils.numberFormatter(parseFloat(selectedFeature.value).toFixed(4))
                     })
                     if(selectedFeature.name) {
                         popupData.push({
@@ -564,6 +573,11 @@ class WigTrack extends TrackBase {
      */
 
     getColorForFeature(f) {
+        // A color encoded in the data (e.g. the color column of a text wig/bedGraph record) is used when the track
+        // itself has no explicit color.  An explicit track color always wins.
+        if (f.color && undefined === this.color && undefined === this.altColor) {
+            return f.color
+        }
         let c = (f.value < 0 && this.altColor) ? this.altColor : this.color || WigTrack.defaultColor
         return (typeof c === "function") ? c(f.value) : c
     }
