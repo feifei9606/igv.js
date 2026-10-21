@@ -210,6 +210,20 @@ igv.createBrowser(div, {
 const dataUrl = await browser.toPNGDataURL(["tumor", "normal"])
 ```
 
+## 本地测试
+
+测试数据托管在 GitHub raw（`raw.githubusercontent.com/igvteam/igv-data`），国内直连不通，默认经 GitHub 镜像访问：
+
+```bash
+npm test                                            # 默认镜像 https://gh-proxy.com/
+IGV_TEST_DATA_MIRROR=https://ghfast.top/ npm test   # 换镜像
+IGV_TEST_DATA_MIRROR= npm test                      # 强制直连（海外网络）
+```
+
+改写发生在传输层（`test/utils/testDataURL.js` 包装 `fetch` 与 `XMLHttpRequest.open`），测试代码和断言里的 URL 都不需要改；`npm test` 的超时已放宽到 15s（镜像首包较慢）。
+
+仍有两个用例依赖非 GitHub 站点，国内网络下会失败，属已知限制：`bbChromTree`（hgdownload.soe.ucsc.edu）、`hub.txt` 的 NCBI Hosted Hub（ftp.ncbi.nlm.nih.gov）。
+
 ## 其它行为变更
 
 - 搜索框支持裸染色体名：输入 `chr8`（不含坐标）可直接跳转到该染色体全程。

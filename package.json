@@ -25,7 +25,7 @@
     "updateCSS": "node scripts/compileSass.cjs && node scripts/generateEmbedCss.js",
     "watch:css": "node scripts/watchCss.cjs",
     "pretest": "npm run updateCSS",
-    "test": "mocha --ui tdd",
+    "test": "mocha --ui tdd --timeout 15000",
     "build:dev-dashboard": "node scripts/buildDevDashboard.cjs"
   },
   "author": {

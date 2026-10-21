@@ -9,6 +9,7 @@ import {Document, DOMImplementation} from "./Document.js"
 import {DOMParser} from "./DOMParser.js"
 import atob from 'atob'
 import btoa from 'btoa'
+import {installTestDataMirror} from "./testDataURL.js"
 
 global.document = new Document()
 
@@ -42,4 +43,7 @@ global.DOMParser = DOMParser
 global.atob = atob
 
 global.btoa = btoa
+
+// 测试数据在 GitHub raw 上，默认经镜像访问（见 testDataURL.js）；必须在 global.XMLHttpRequest 设置之后安装
+installTestDataMirror()
 
