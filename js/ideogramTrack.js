@@ -19,6 +19,9 @@ class IdeogramTrack {
 
         // Check whether we should show the cytoband names in the ideogram
         this.showCytobandNames = browser.config.showCytobandNames !== false
+
+        // 统一字号；条带宽度放不下的名称直接不画，不再逐条缩小字号
+        this.cytobandFontSize = browser.config.cytobandFontSize
     }
 
     computePixelHeight(ignore) {
@@ -46,6 +49,7 @@ class IdeogramTrack {
             height: pixelHeight,
             stainColors,
             showCytobandNames: this.showCytobandNames,
+            cytobandFontSize: this.cytobandFontSize,
             sampleName: this.browser.config.sampleName
         })
 
@@ -117,13 +121,16 @@ class IdeogramTrack {
     }
 }
 
-function drawIdeogram({ctx, chr, referenceFrame, genome, width, height, stainColors, features, showCytobandNames, sampleName}) {
+function drawIdeogram({ctx, chr, referenceFrame, genome, width, height, stainColors, features, showCytobandNames, cytobandFontSize, sampleName}) {
     const shim = 1
     const shim2 = 0.5 * shim
 
     // Cytobands occupy the lower half of the track, the upper half is the title row
     const bandTop = Math.round(height / 2)
     const bandHeight = height - bandTop
+
+    // 所有条带共用一个字号，且不超出条带高度
+    const fontSize = Math.max(6, Math.min(cytobandFontSize || 10, bandHeight - 2))
 
     if (undefined === genome) {
         return
@@ -196,7 +203,7 @@ function drawIdeogram({ctx, chr, referenceFrame, genome, width, height, stainCol
                 IGVGraphics.fillRect(ctx, start, bandTop + shim, (end - start), bandHeight - 2 * shim)
 
                 if (showCytobandNames) {
-                    drawIdeogramCytobandName(ctx, cytoband.name, start, end, bandTop, bandHeight, backgroundColor.shade)
+                    drawIdeogramCytobandName(ctx, cytoband.name, start, end, bandTop, bandHeight, backgroundColor.shade, fontSize)
                 }
             }
         }
@@ -207,51 +214,62 @@ function drawIdeogram({ctx, chr, referenceFrame, genome, width, height, stainCol
     IGVGraphics.roundRect(ctx, shim2, bandTop + shim2, width - 2 * shim2, bandHeight - 2 * shim2, (bandHeight - 2 * shim2) / 2, 0, 1)
 }
 
-function drawIdeogramCytobandName(ctx, name, start, end, ideogramTop, height, shade) {
-    const padding = 2; // Padding between the rect and the sides of the ideogram
+/**
+ * Draw a cytoband name.  All bands share the same font size (passed in); a name that does not fit in its band is
+ * skipped rather than shrunk, so the row of labels stays visually uniform at any zoom level.
+ *
+ * @param ctx
+ * @param name        cytoband name, e.g. "p11.2"
+ * @param start       band start, in pixels
+ * @param end         band end, in pixels
+ * @param bandTop     band top, in pixels
+ * @param bandHeight  band height, in pixels
+ * @param shade       gray shade of the band, used to pick a readable text color
+ * @param fontSize    font size in pixels, identical for every band
+ */
+function drawIdeogramCytobandName(ctx, name, start, end, bandTop, bandHeight, shade, fontSize) {
 
-    // Calculate font size to fit the rectangle height and width
-    const rectHeight = height - 2 * padding;
-    const rectWidth = end - start;
+    const padding = 2  // Padding between the band edges and the text
+    const bandWidth = end - start - 2 * padding
 
-    const maxFontSize = rectHeight - 2 * padding; // Leave some padding for text
-    let fontSize = maxFontSize;
-    do {
-        ctx.font = `${fontSize}px sans-serif`;
-        const textWidth = ctx.measureText(name).width;
-        if (textWidth <= rectWidth) break;
-        fontSize -= 1;
-    } while (fontSize > 4); // Minimum font size to avoid infinite loop
+    if (bandWidth <= 0) {
+        return
+    }
 
-    // For safety, we're going to clip the text to the rectangle bounds
-    ctx.save(); // Save the current state of the context
-    ctx.beginPath();
-    ctx.rect(start, padding + ideogramTop, rectWidth, rectHeight);
-    ctx.clip();
+    ctx.font = `${fontSize}px sans-serif`
+    const metrics = ctx.measureText(name)
 
-    // Draw the name of the cytoband, centered within the rectangle
-    const centerX = start + rectWidth / 2.0;
-    const centerY = padding + ideogramTop + rectHeight / 2.0 + 1;
+    // 统一字号：放不下就不画，不再逐条缩小字号去硬塞
+    if (metrics.width > bandWidth) {
+        return
+    }
 
     // Determine the luminance
-    let luminance;
+    let luminance
     if (shade !== null) {
-        luminance = 0.2126 * shade + 0.7152 * shade + 0.0722 * shade; // Simplified since R=G=B=shade
+        luminance = 0.2126 * shade + 0.7152 * shade + 0.0722 * shade  // Simplified since R=G=B=shade
     } else {
-        luminance = 0.2126 * 150 + 0.7152 * 10 + 0.0722 * 10; // Hardcoded for "acen"
+        luminance = 0.2126 * 150 + 0.7152 * 10 + 0.0722 * 10  // Hardcoded for "acen"
     }
 
     // Choose text color based on luminance
-    const textColor = luminance < 128 ? "white" : "black";
+    const textColor = luminance < 128 ? "white" : "black"
 
-    IGVGraphics.fillText(ctx, name, centerX, centerY, {
+    const centerX = start + (end - start) / 2
+    const centerY = bandTop + bandHeight / 2
+
+    // 按字形实际上下沿做垂直居中；SVG 等上下文没有 actualBoundingBox 时退回经验基线偏移
+    const ascent = metrics.actualBoundingBoxAscent
+    const descent = metrics.actualBoundingBoxDescent
+    const textY = (Number.isFinite(ascent) && Number.isFinite(descent)) ?
+        centerY + (ascent - descent) / 2 :
+        centerY + fontSize * 0.35
+
+    IGVGraphics.fillText(ctx, name, centerX, textY, {
         fillStyle: textColor,
         textAlign: "center",
-        textBaseline: "middle",
-        font: `${fontSize}px sans-serif` // Ensure proper font size
-    });
-
-    ctx.restore(); // Restore the context to remove clipping
+        font: `${fontSize}px sans-serif`
+    })
 }
 
 function getCytobandColor(colors, data) {
